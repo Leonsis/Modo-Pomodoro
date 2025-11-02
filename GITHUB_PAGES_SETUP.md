@@ -7,9 +7,12 @@ Siga estes passos para publicar o site no GitHub Pages:
 1. Vá para o seu repositório no GitHub: `https://github.com/Leonsis/Modo-Pomodoro`
 2. Clique em **Settings** (Configurações)
 3. No menu lateral, clique em **Pages**
-4. Em **Source** (Fonte), selecione:
-   - **Source**: `GitHub Actions`
+4. Em **Source** (Fonte), você verá opções:
+   - Se aparecer **"GitHub Actions"**: selecione essa opção (recomendado)
+   - Se aparecer apenas **"GitHub Pages Jekyll"** ou **"Static HTML"**: selecione **"Static HTML"**
 5. Clique em **Save** (Salvar)
+
+**Nota**: Se você selecionou "Static HTML", o site funcionará, mas para usar o workflow automatizado, tente mudar para "GitHub Actions" depois.
 
 ## Passo 2: Verificar o Ambiente GitHub Pages
 
