@@ -604,6 +604,17 @@ body.dark-theme .step-content strong {
     color: var(--text-primary);
 }
 
+/* Corrigir textos com Bootstrap text-muted no tema escuro */
+body.dark-theme .text-muted,
+body.dark-theme .lead.text-muted,
+body.dark-theme small.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .lead {
+    color: var(--text-secondary);
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .timer-circle {
