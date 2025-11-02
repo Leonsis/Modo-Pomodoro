@@ -115,4 +115,3 @@ modoPomodoro/
 ---
 
 Desenvolvido com foco em simplicidade, performance e experiência do usuário.
-
