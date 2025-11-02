@@ -7,16 +7,28 @@ const getBasePath = () => {
   if (path.endsWith('/src/service-worker.js')) {
     return path.replace('/src/service-worker.js', '');
   }
-  return '';
+  // Se está na raiz, retornar vazio
+  if (path === '/' || path === '/src/service-worker.js') {
+    return '';
+  }
+  // Extrair o caminho base (ex: /Modo-Pomodoro)
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length > 0 && parts[parts.length - 1] === 'service-worker.js') {
+    parts.pop(); // Remove 'src'
+    parts.pop(); // Remove service-worker.js
+  }
+  return parts.length > 0 ? '/' + parts.join('/') : '';
 };
 
 const basePath = getBasePath();
+const rootUrl = basePath || '/';
+
 const urlsToCache = [
-  basePath + "/index.html",
-  basePath + "/src/style.css",
-  basePath + "/src/script.js",
-  basePath + "/src/manifest.json"
-].filter(Boolean); // Remove strings vazias
+  rootUrl + (rootUrl.endsWith('/') ? '' : '/') + 'index.html',
+  rootUrl + (rootUrl.endsWith('/') ? '' : '/') + 'src/style.css',
+  rootUrl + (rootUrl.endsWith('/') ? '' : '/') + 'src/script.js',
+  rootUrl + (rootUrl.endsWith('/') ? '' : '/') + 'src/manifest.json'
+];
 
 // Instalar Service Worker e cachear recursos
 self.addEventListener("install", (event) => {
@@ -41,34 +53,52 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   
-  // Ignorar requisições para APIs externas (Bootstrap, Font Awesome, etc)
   const url = new URL(event.request.url);
+  
+  // Ignorar requisições para APIs externas (Bootstrap, Font Awesome, etc)
   if (url.origin !== location.origin) {
     return;
   }
 
+  // Redirecionar requisições para a raiz para index.html
+  const requestUrl = url.pathname;
+  let cacheUrl = event.request.url;
+  
+  if (requestUrl === rootUrl || requestUrl === rootUrl + '/') {
+    cacheUrl = new URL(rootUrl + (rootUrl.endsWith('/') ? 'index.html' : '/index.html'), url.origin).href;
+  }
+
   event.respondWith(
-    caches.match(event.request)
+    caches.match(cacheUrl)
       .then((response) => {
-        // Retornar do cache se disponível, senão buscar na rede
+        // Retornar do cache se disponível
         if (response) {
           return response;
         }
+        
+        // Buscar da rede
         return fetch(event.request).then((response) => {
           // Só cachear respostas válidas
           if (!response || response.status !== 200 || response.type !== "basic") {
             return response;
           }
+          
           // Clonar a resposta para cachear
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
           return response;
+        }).catch(() => {
+          // Se a requisição falhar e for para a raiz, tentar servir index.html do cache
+          if (requestUrl === rootUrl || requestUrl === rootUrl + '/') {
+            return caches.match(cacheUrl);
+          }
+          throw new Error('Network error');
         });
       })
       .catch(() => {
-        // Se tudo falhar, tentar buscar da rede
+        // Última tentativa: buscar da rede
         return fetch(event.request);
       })
   );

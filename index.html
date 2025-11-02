@@ -167,14 +167,33 @@
         // Registrar Service Worker
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
-                navigator.serviceWorker.register("src/service-worker.js")
+                // Usar caminho relativo ao contexto atual
+                const swPath = new URL("src/service-worker.js", window.location).pathname;
+                navigator.serviceWorker.register(swPath, {
+                    scope: "./"
+                })
                     .then((registration) => {
                         console.log("Service Worker registrado com sucesso:", registration.scope);
+                        
+                        // Verificar se há atualização disponível
+                        registration.addEventListener("updatefound", () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener("statechange", () => {
+                                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                                    console.log("Nova versão do Service Worker disponível");
+                                }
+                            });
+                        });
                     })
                     .catch((error) => {
                         console.log("Falha ao registrar Service Worker:", error);
                     });
             });
+        }
+        
+        // Verificar se já há um service worker controlando a página
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+            console.log("Service Worker já está controlando a página");
         }
     </script>
 </body>
