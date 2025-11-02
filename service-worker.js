@@ -3,18 +3,17 @@ const CACHE_NAME = "pomodoro-v1";
 // Detectar o caminho base do projeto (funciona tanto local quanto GitHub Pages)
 const getBasePath = () => {
   const path = self.location.pathname;
-  // Se o service worker está em /src/service-worker.js, remover isso para obter o base
-  if (path.endsWith('/src/service-worker.js')) {
-    return path.replace('/src/service-worker.js', '');
+  // Se o service worker está na raiz (service-worker.js), detectar o base path
+  if (path.endsWith('/service-worker.js')) {
+    return path.replace('/service-worker.js', '');
   }
   // Se está na raiz, retornar vazio
-  if (path === '/' || path === '/src/service-worker.js') {
+  if (path === '/' || path === '/service-worker.js') {
     return '';
   }
   // Extrair o caminho base (ex: /Modo-Pomodoro)
   const parts = path.split('/').filter(Boolean);
   if (parts.length > 0 && parts[parts.length - 1] === 'service-worker.js') {
-    parts.pop(); // Remove 'src'
     parts.pop(); // Remove service-worker.js
   }
   return parts.length > 0 ? '/' + parts.join('/') : '';
@@ -121,4 +120,4 @@ self.addEventListener("activate", (event) => {
   // Tomar controle imediato de todas as páginas
   return self.clients.claim();
 });
-  
+

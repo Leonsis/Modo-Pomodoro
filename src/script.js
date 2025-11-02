@@ -174,7 +174,13 @@ function updateDailyProgressDisplay() {
 
 // Salvar preferências
 function savePreferences() {
-    localStorage.setItem('preferencias', JSON.stringify(preferences));
+    // Garantir que está salvando no formato correto
+    const prefsToSave = {
+        theme: preferences.theme,
+        sound: preferences.sound,
+        notifications: preferences.notifications
+    };
+    localStorage.setItem('preferencias', JSON.stringify(prefsToSave));
 }
 
 // Carregar preferências
@@ -183,18 +189,47 @@ function loadPreferences() {
     if (saved) {
         try {
             const prefs = JSON.parse(saved);
-            preferences.theme = prefs.tema === 'escuro' ? 'dark' : 'light';
-            preferences.sound = prefs.som !== undefined ? prefs.som : true;
-            preferences.notifications = prefs.notificacoes !== undefined ? prefs.notificacoes : true;
+            // Suportar ambos os formatos (antigo com português e novo com inglês)
+            if (prefs.theme !== undefined) {
+                preferences.theme = prefs.theme;
+            } else if (prefs.tema !== undefined) {
+                preferences.theme = prefs.tema === 'escuro' || prefs.tema === 'dark' ? 'dark' : 'light';
+            }
             
-            // Aplicar preferências
+            if (prefs.sound !== undefined) {
+                preferences.sound = prefs.sound;
+            } else if (prefs.som !== undefined) {
+                preferences.sound = prefs.som;
+            }
+            
+            if (prefs.notifications !== undefined) {
+                preferences.notifications = prefs.notifications;
+            } else if (prefs.notificacoes !== undefined) {
+                preferences.notifications = prefs.notificacoes;
+            }
+            
+            // Aplicar tema primeiro (importante para aplicar antes de atualizar checkboxes)
             applyTheme();
-            darkModeToggle.checked = preferences.theme === 'dark';
-            soundToggle.checked = preferences.sound;
-            notificationToggle.checked = preferences.notifications;
+            
+            // Atualizar checkboxes apenas se os elementos existirem (pode estar null se DOM não estiver pronto)
+            // Vamos atualizar quando os elementos estiverem disponíveis
+            setTimeout(() => {
+                if (darkModeToggle) {
+                    darkModeToggle.checked = preferences.theme === 'dark';
+                }
+                if (soundToggle) {
+                    soundToggle.checked = preferences.sound;
+                }
+                if (notificationToggle) {
+                    notificationToggle.checked = preferences.notifications;
+                }
+            }, 0);
         } catch (e) {
             console.error('Erro ao carregar preferências:', e);
         }
+    } else {
+        // Se não há preferências salvas, aplicar as padrões
+        applyTheme();
     }
     
     // Solicitar permissão de notificação após carregar preferências
@@ -216,6 +251,9 @@ function applyTheme() {
 
 // Inicialização
 function init() {
+    // Carregar preferências PRIMEIRO para aplicar tema antes de qualquer renderização
+    loadPreferences();
+    
     // Carregar dados do localStorage
     const nome = loadUserName();
     if (nome) {
@@ -223,7 +261,6 @@ function init() {
     }
     loadTimeSettings();
     loadDailyProgress();
-    loadPreferences();
     
     setupEventListeners();
     updateProgress(); // Inicializar progresso primeiro
@@ -593,5 +630,11 @@ function toggleSettings() {
 }
 
 // Inicializar quando a página carregar
-init();
+// Aguardar DOM estar totalmente carregado
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    // DOM já está carregado
+    init();
+}
 

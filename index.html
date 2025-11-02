@@ -7,7 +7,7 @@
     
     <link rel="manifest" href="src/manifest.json" id="manifestLink">
     <meta name="theme-color" content="#4A90E2">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Pomodoro">
     <script>
@@ -226,8 +226,9 @@
         // Registrar Service Worker (apenas em HTTP/HTTPS, não em file://)
         if ("serviceWorker" in navigator && (location.protocol === 'https:' || location.protocol === 'http:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
             window.addEventListener("load", () => {
+                // Mover service worker para a raiz para ter scope completo
                 // Usar caminho relativo ao contexto atual
-                const swPath = new URL("src/service-worker.js", window.location).pathname;
+                const swPath = new URL("service-worker.js", window.location).pathname;
                 navigator.serviceWorker.register(swPath, {
                     scope: "./"
                 })
