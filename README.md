@@ -2,6 +2,12 @@
 
 Um aplicativo web moderno e intuitivo para implementar a técnica Pomodoro, desenvolvido com tecnologias web nativas.
 
+## 🌐 Visualizar Projeto
+
+**Acesse o projeto em:** [https://leonsis.github.io/Modo-Pomodoro/](https://leonsis.github.io/Modo-Pomodoro/)
+
+O aplicativo está hospedado no GitHub Pages e pode ser usado diretamente no navegador. Você também pode instalá-lo como um PWA no seu dispositivo!
+
 ## 📋 Objetivo
 
 Este projeto foi desenvolvido para ajudar pessoas a melhorarem sua produtividade e foco através da técnica Pomodoro, que consiste em trabalhar em blocos de tempo focados (geralmente 25 minutos) seguidos de pausas curtas. O objetivo é criar uma ferramenta simples, eficaz e visualmente agradável que permita aos usuários gerenciar seu tempo de trabalho de forma mais eficiente.
