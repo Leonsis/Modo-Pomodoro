@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modo Pomodoro</title>
     
-    <link rel="manifest" href="src/manifest.json">
+    <link rel="manifest" href="src/manifest.json" id="manifestLink">
     <meta name="theme-color" content="#4A90E2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Pomodoro">
+    <script>
+        // Remover manifest link se estiver em file:// para evitar erro CORS
+        if (location.protocol === 'file:') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const manifestLink = document.getElementById('manifestLink');
+                if (manifestLink) {
+                    manifestLink.remove();
+                }
+            });
+        }
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234A90E2'/%3E%3Ccircle cx='50' cy='50' r='40' fill='white'/%3E%3Cline x1='50' y1='50' x2='50' y2='35' stroke='%234A90E2' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='60' y2='50' stroke='%234A90E2' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='50' r='3' fill='%234A90E2'/%3E%3C/svg%3E">
@@ -35,7 +46,7 @@
                 <h1 class="display-4 mb-2">
                     Modo Pomodoro
                 </h1>
-                <p class="lead text-muted">Foque 100% na sua tarefa</p>
+                <p id="personalizedGreeting" class="lead text-muted">Foque 100% na sua tarefa</p>
             </div>
 
             <!-- Status Indicator -->
@@ -133,13 +144,36 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Progresso Diário -->
+            <div class="progress-card mt-4">
+                <div class="progress-header">
+                    <i class="fas fa-chart-line"></i> Progresso de Hoje
+                </div>
+                <div class="progress-content">
+                    <div id="dailyProgress" class="daily-progress-text">
+                        Você ainda não completou nenhum pomodoro hoje.
+                    </div>
+                </div>
+            </div>
 
             <!-- Settings -->
-            <div class="settings-card mt-4">
-                <div class="settings-header">
+            <div class="settings-card mt-4 collapsed">
+                <div class="settings-header" onclick="toggleSettings()">
                     <i class="fas fa-cog"></i> Configurações
+                    <div id="settingsArrow" class="settings-arrow">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
                 </div>
-                <div class="settings-content">
+                <div id="settingsContent" class="settings-content">
+                    <!-- Nome do usuário -->
+                    <div class="setting-item">
+                        <label><i class="fas fa-user"></i> Seu Nome</label>
+                        <input type="text" id="userName" class="form-control" placeholder="Digite seu nome">
+                        <small class="text-muted">Personalize sua experiência</small>
+                    </div>
+                    
+                    <!-- Configurações de tempo -->
                     <div class="setting-item">
                         <label>Pomodoro (minutos)</label>
                         <input type="number" id="pomodoroTime" class="form-control" value="25" min="1" max="60">
@@ -151,6 +185,31 @@
                     <div class="setting-item">
                         <label>Pausa Longa (minutos)</label>
                         <input type="number" id="longBreakTime" class="form-control" value="15" min="1" max="60">
+                    </div>
+                    
+                    <!-- Preferências -->
+                    <div class="setting-item">
+                        <label><i class="fas fa-palette"></i> Preferências</label>
+                        <div class="preferences-group">
+                            <div class="preference-item">
+                                <label class="switch-label">
+                                    <input type="checkbox" id="darkModeToggle" class="form-check-input">
+                                    <span>Tema Escuro</span>
+                                </label>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch-label">
+                                    <input type="checkbox" id="soundToggle" class="form-check-input" checked>
+                                    <span>Som de Notificação</span>
+                                </label>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch-label">
+                                    <input type="checkbox" id="notificationToggle" class="form-check-input" checked>
+                                    <span>Notificações do Navegador</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -164,8 +223,8 @@
     <!-- Custom JS -->
     <script src="src/script.js"></script>
     <script>
-        // Registrar Service Worker
-        if ("serviceWorker" in navigator) {
+        // Registrar Service Worker (apenas em HTTP/HTTPS, não em file://)
+        if ("serviceWorker" in navigator && (location.protocol === 'https:' || location.protocol === 'http:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
             window.addEventListener("load", () => {
                 // Usar caminho relativo ao contexto atual
                 const swPath = new URL("src/service-worker.js", window.location).pathname;
@@ -186,9 +245,15 @@
                         });
                     })
                     .catch((error) => {
-                        console.log("Falha ao registrar Service Worker:", error);
+                        // Silenciar erros quando não é possível registrar (ex: file://)
+                        if (location.protocol !== 'file:') {
+                            console.log("Falha ao registrar Service Worker:", error);
+                        }
                     });
             });
+        } else if (location.protocol === 'file:') {
+            // Silenciar quando abrir via file:// (desenvolvimento local)
+            console.log("Service Worker desabilitado para protocolo file://");
         }
         
         // Verificar se já há um service worker controlando a página

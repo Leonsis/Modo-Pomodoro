@@ -17,6 +17,13 @@ let settings = {
     longBreakTime: 15 // minutos
 };
 
+// Preferências do usuário
+let preferences = {
+    theme: 'light', // 'light' ou 'dark'
+    sound: true,
+    notifications: true
+};
+
 // Elementos DOM
 const timerDisplay = document.getElementById('timerDisplay');
 const timerLabel = document.getElementById('timerLabel');
@@ -36,10 +43,188 @@ const instructionsAccordion = document.getElementById('instructionsAccordion');
 const pomodoroTimeInput = document.getElementById('pomodoroTime');
 const shortBreakTimeInput = document.getElementById('shortBreakTime');
 const longBreakTimeInput = document.getElementById('longBreakTime');
+const userNameInput = document.getElementById('userName');
+const personalizedGreeting = document.getElementById('personalizedGreeting');
+const dailyProgress = document.getElementById('dailyProgress');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const soundToggle = document.getElementById('soundToggle');
+const notificationToggle = document.getElementById('notificationToggle');
+
+// ==================== LOCAL STORAGE FUNCTIONS ====================
+
+// Salvar nome do usuário
+function saveUserName(name) {
+    if (name && name.trim()) {
+        localStorage.setItem('nome', name.trim());
+        updateGreeting();
+    }
+}
+
+// Carregar nome do usuário
+function loadUserName() {
+    const nome = localStorage.getItem('nome');
+    if (nome) {
+        userNameInput.value = nome;
+    }
+    return nome || '';
+}
+
+// Atualizar saudação personalizada
+function updateGreeting() {
+    const nome = loadUserName();
+    if (nome) {
+        personalizedGreeting.textContent = `Olá, ${nome}! Pronto para focar?`;
+    } else {
+        personalizedGreeting.textContent = 'Foque 100% na sua tarefa';
+    }
+}
+
+// Salvar configurações de tempo
+function saveTimeSettings() {
+    const config = {
+        foco: settings.pomodoroTime,
+        pausaCurta: settings.shortBreakTime,
+        pausaLonga: settings.longBreakTime,
+        ciclos: 4 // padrão
+    };
+    localStorage.setItem('configPomodoro', JSON.stringify(config));
+}
+
+// Carregar configurações de tempo
+function loadTimeSettings() {
+    const saved = localStorage.getItem('configPomodoro');
+    if (saved) {
+        try {
+            const config = JSON.parse(saved);
+            settings.pomodoroTime = config.foco || 25;
+            settings.shortBreakTime = config.pausaCurta || 5;
+            settings.longBreakTime = config.pausaLonga || 15;
+            
+            // Atualizar inputs
+            pomodoroTimeInput.value = settings.pomodoroTime;
+            shortBreakTimeInput.value = settings.shortBreakTime;
+            longBreakTimeInput.value = settings.longBreakTime;
+            
+            state.timeLeft = settings.pomodoroTime * 60;
+        } catch (e) {
+            console.error('Erro ao carregar configurações:', e);
+        }
+    }
+}
+
+// Salvar progresso diário
+function saveDailyProgress() {
+    const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const progresso = {
+        data: hoje,
+        completos: state.totalPomodoros
+    };
+    localStorage.setItem('progresso', JSON.stringify(progresso));
+    updateDailyProgressDisplay();
+}
+
+// Carregar progresso diário
+function loadDailyProgress() {
+    const saved = localStorage.getItem('progresso');
+    if (saved) {
+        try {
+            const progresso = JSON.parse(saved);
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            // Se for o mesmo dia, carregar o progresso
+            if (progresso.data === hoje) {
+                state.totalPomodoros = progresso.completos || 0;
+            } else {
+                // Novo dia, resetar
+                state.totalPomodoros = 0;
+            }
+            
+            updateDailyProgressDisplay();
+        } catch (e) {
+            console.error('Erro ao carregar progresso:', e);
+        }
+    }
+}
+
+// Atualizar display do progresso diário
+function updateDailyProgressDisplay() {
+    const hoje = new Date().toISOString().split('T')[0];
+    const saved = localStorage.getItem('progresso');
+    
+    if (saved) {
+        try {
+            const progresso = JSON.parse(saved);
+            if (progresso.data === hoje && progresso.completos > 0) {
+                const mensagens = [
+                    `Você já completou ${progresso.completos} pomodoro${progresso.completos > 1 ? 's' : ''} hoje! 🎉`,
+                    `Parabéns! ${progresso.completos} pomodoro${progresso.completos > 1 ? 's' : ''} completado${progresso.completos > 1 ? 's' : ''} hoje. Continue assim! 💪`,
+                    `${progresso.completos} pomodoro${progresso.completos > 1 ? 's' : ''} concluído${progresso.completos > 1 ? 's' : ''} hoje. Excelente trabalho! ⭐`
+                ];
+                dailyProgress.textContent = mensagens[Math.floor(Math.random() * mensagens.length)];
+            } else {
+                dailyProgress.textContent = 'Você ainda não completou nenhum pomodoro hoje.';
+            }
+        } catch (e) {
+            dailyProgress.textContent = 'Você ainda não completou nenhum pomodoro hoje.';
+        }
+    } else {
+        dailyProgress.textContent = 'Você ainda não completou nenhum pomodoro hoje.';
+    }
+}
+
+// Salvar preferências
+function savePreferences() {
+    localStorage.setItem('preferencias', JSON.stringify(preferences));
+}
+
+// Carregar preferências
+function loadPreferences() {
+    const saved = localStorage.getItem('preferencias');
+    if (saved) {
+        try {
+            const prefs = JSON.parse(saved);
+            preferences.theme = prefs.tema === 'escuro' ? 'dark' : 'light';
+            preferences.sound = prefs.som !== undefined ? prefs.som : true;
+            preferences.notifications = prefs.notificacoes !== undefined ? prefs.notificacoes : true;
+            
+            // Aplicar preferências
+            applyTheme();
+            darkModeToggle.checked = preferences.theme === 'dark';
+            soundToggle.checked = preferences.sound;
+            notificationToggle.checked = preferences.notifications;
+        } catch (e) {
+            console.error('Erro ao carregar preferências:', e);
+        }
+    }
+    
+    // Solicitar permissão de notificação após carregar preferências
+    if ('Notification' in window && Notification.permission === 'default' && preferences.notifications) {
+        Notification.requestPermission();
+    }
+}
+
+// Aplicar tema
+function applyTheme() {
+    if (preferences.theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// ==================== INICIALIZAÇÃO ====================
 
 // Inicialização
 function init() {
-    loadSettings();
+    // Carregar dados do localStorage
+    const nome = loadUserName();
+    if (nome) {
+        updateGreeting();
+    }
+    loadTimeSettings();
+    loadDailyProgress();
+    loadPreferences();
+    
     setupEventListeners();
     updateProgress(); // Inicializar progresso primeiro
     updateDisplay();
@@ -55,15 +240,19 @@ function loadSettings() {
     settings.shortBreakTime = parseInt(shortBreakTimeInput.value) || 5;
     settings.longBreakTime = parseInt(longBreakTimeInput.value) || 15;
     state.timeLeft = settings.pomodoroTime * 60;
+    saveTimeSettings(); // Salvar no localStorage
 }
 
 // Event Listeners
 function setupEventListeners() {
+    // Configurações de tempo
     pomodoroTimeInput.addEventListener('change', () => {
         if (!state.isRunning && state.currentMode === 'pomodoro') {
             loadSettings();
             updateDisplay();
             updateProgress();
+        } else {
+            loadSettings();
         }
     });
 
@@ -73,6 +262,40 @@ function setupEventListeners() {
 
     longBreakTimeInput.addEventListener('change', () => {
         loadSettings();
+    });
+    
+    // Nome do usuário
+    userNameInput.addEventListener('blur', () => {
+        saveUserName(userNameInput.value);
+    });
+    
+    userNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            saveUserName(userNameInput.value);
+            userNameInput.blur();
+        }
+    });
+    
+    // Preferências
+    darkModeToggle.addEventListener('change', () => {
+        preferences.theme = darkModeToggle.checked ? 'dark' : 'light';
+        applyTheme();
+        savePreferences();
+    });
+    
+    soundToggle.addEventListener('change', () => {
+        preferences.sound = soundToggle.checked;
+        savePreferences();
+    });
+    
+    notificationToggle.addEventListener('change', () => {
+        preferences.notifications = notificationToggle.checked;
+        savePreferences();
+        
+        // Solicitar permissão se necessário
+        if (notificationToggle.checked && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
     });
 
     // Recalcular progresso ao redimensionar
@@ -174,10 +397,16 @@ function updateTimerLabel() {
 function updateCounters() {
     pomodoroCountEl.textContent = state.totalPomodoros;
     sessionCountEl.textContent = state.sessionCount;
+    updateDailyProgressDisplay(); // Atualizar progresso diário quando contador mudar
 }
 
 // Play som de notificação
 function playNotification() {
+    // Só tocar som se estiver habilitado
+    if (!preferences.sound) {
+        return;
+    }
+    
     // Criar som de notificação usando Web Audio API
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -198,6 +427,10 @@ function playNotification() {
 
 // Notificação do navegador
 function sendNotification(title, message) {
+    if (!preferences.notifications) {
+        return;
+    }
+    
     if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, {
             body: message,
@@ -206,16 +439,14 @@ function sendNotification(title, message) {
     }
 }
 
-// Solicitar permissão de notificação
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-}
+// Solicitar permissão de notificação será feito após carregar preferências
 
 // Mudar para próximo modo
 function switchMode() {
     if (state.currentMode === 'pomodoro') {
         state.totalPomodoros++;
         updateCounters();
+        saveDailyProgress(); // Salvar progresso diário
 
         // Verificar se precisa de pausa longa (a cada 4 Pomodoros)
         if (state.totalPomodoros % 4 === 0) {
@@ -301,11 +532,11 @@ function resetTimer() {
     
     loadSettings();
     
-    // Resetar para modo Pomodoro
+    // Resetar para modo Pomodoro (mas manter o progresso diário)
     state.currentMode = 'pomodoro';
     state.timeLeft = settings.pomodoroTime * 60;
-    state.totalPomodoros = 0;
     state.sessionCount = 1;
+    // Não resetar totalPomodoros para manter o progresso diário
     
     updateDisplay();
     updateButtons();
@@ -343,6 +574,22 @@ function closeInstructions() {
     instructionsAccordion.classList.remove('expanded');
     const arrowIcon = arrowDown.querySelector('i');
     arrowIcon.className = 'fas fa-chevron-down';
+}
+
+// Toggle Settings Accordion
+function toggleSettings() {
+    const settingsCard = document.querySelector('.settings-card');
+    settingsCard.classList.toggle('expanded');
+    settingsCard.classList.toggle('collapsed');
+    
+    // Atualizar ícone da seta
+    const settingsArrow = document.getElementById('settingsArrow');
+    const arrowIcon = settingsArrow.querySelector('i');
+    if (settingsCard.classList.contains('expanded')) {
+        arrowIcon.className = 'fas fa-chevron-up';
+    } else {
+        arrowIcon.className = 'fas fa-chevron-down';
+    }
 }
 
 // Inicializar quando a página carregar
